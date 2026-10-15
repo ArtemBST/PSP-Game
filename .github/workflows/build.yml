@@ -1,0 +1,26 @@
+name: Build PSP Homebrew
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pspdev
+        run: |
+          wget https://github.com/pspdev/pspdev/releases/latest/download/pspdev-ubuntu-latest-x86_64.tar.gz
+          sudo tar -xvf pspdev-ubuntu-latest-x86_64.tar.gz -C /usr/local
+          echo "PSPDEV=/usr/local/pspdev" >> $GITHUB_ENV
+          echo "/usr/local/pspdev/bin" >> $GITHUB_PATH
+
+      - name: Build with make
+        run: make
+
+      - name: Upload EBOOT.PBP
+        uses: actions/upload-artifact@v4
+        with:
+          name: EBOOT.PBP
+          path: EBOOT.PBP
