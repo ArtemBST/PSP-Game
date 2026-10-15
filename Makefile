@@ -1,12 +1,12 @@
-TARGET = HelloPSP
+TARGET = driftmania
 OBJS = main.o
+
+# Подключаем твою кастомную иконку
+PSP_EBOOT_ICON = ICON0.PNG
 
 CFLAGS = -O2 -G0 -Wall
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 
-EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = Hello PSP by Artem
-
-PSPSDK = $(shell psp-config --pspsdk-path)
+PSPSDK=$(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build.mak
