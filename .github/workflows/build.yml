@@ -14,10 +14,13 @@ jobs:
           wget https://github.com/pspdev/pspdev/releases/latest/download/pspdev-ubuntu-latest-x86_64.tar.gz
           sudo tar -xvf pspdev-ubuntu-latest-x86_64.tar.gz -C /usr/local
           echo "PSPDEV=/usr/local/pspdev" >> $GITHUB_ENV
-          echo "/usr/local/pspdev/bin" >> $GITHUB_PATH
+          echo "PATH=/usr/local/pspdev/bin:$PATH" >> $GITHUB_ENV
 
       - name: Build with make
-        run: make
+        run: |
+          export PSPDEV=/usr/local/pspdev
+          export PATH=$PSPDEV/bin:$PATH
+          make
 
       - name: Upload EBOOT.PBP
         uses: actions/upload-artifact@v4
