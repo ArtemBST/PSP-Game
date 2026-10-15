@@ -6,8 +6,8 @@
 PSP_MODULE_INFO("Driftmania", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
 
-/* Выход из игры по желанию */
-int exit_callback(int arg1, int arg2, int exit) {
+/* Исправленный тип третьего аргумента: void *arg вместо int */
+int exit_callback(int arg1, int arg2, void *arg) {
     sceKernelExitGame();
     return 0;
 }
@@ -39,9 +39,6 @@ int main(void) {
 
     while (1) {
         sceCtrlReadBufferPositive(&pad, 1);
-        
-        // Очищаем экран (в текстовом режиме PSP вывод идет через стандартный printf)
-        // Внимание: стандартный stdout в PSP выводит текст в отладочное окошко/экран Text Mode
         
         if (menu_state == 0) {
             printf("\x1b[H"); // Перевод курсора в левый верхний угол
