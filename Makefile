@@ -9,4 +9,4 @@ EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = Hello PSP by Artem
 
 PSPSDK=$(shell psp-config --psp-prefix)
-include $(PSPSDK)/lib/build.mak
+include $(PSPSDK)/share/build.mak
