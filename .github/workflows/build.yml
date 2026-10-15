@@ -16,7 +16,7 @@ jobs:
           echo "PSPDEV=/usr/local/pspdev" >> $GITHUB_ENV
           echo "PATH=/usr/local/pspdev/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Build with make
+      - name: Build project
         run: |
           export PSPDEV=/usr/local/pspdev
           export PATH=$PSPDEV/bin:$PATH
