@@ -1,12 +1,15 @@
 #include <pspkernel.h>
 #include <pspdisplay.h>
 #include <pspctrl.h>
+#include <pspdebug.h>
 #include <stdio.h>
+
+/* Перенаправляем стандартный printf на экран PSP */
+#define printf pspDebugScreenPrintf
 
 PSP_MODULE_INFO("Driftmania", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
 
-/* Исправленный тип третьего аргумента: void *arg вместо int */
 int exit_callback(int arg1, int arg2, void *arg) {
     sceKernelExitGame();
     return 0;
@@ -28,6 +31,9 @@ int setup_callbacks(void) {
 int main(void) {
     setup_callbacks();
     
+    // Инициализируем экран отладки для вывода текста
+    pspDebugScreenInit();
+    
     // Инициализация контроллера PSP
     sceCtrlSetSamplingCycle(0);
     sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
@@ -40,8 +46,10 @@ int main(void) {
     while (1) {
         sceCtrlReadBufferPositive(&pad, 1);
         
+        // Переводим курсор в левый верхний угол перед каждой перерисовкой экрана
+        pspDebugScreenSetXY(0, 0);
+        
         if (menu_state == 0) {
-            printf("\x1b[H"); // Перевод курсора в левый верхний угол
             printf("\n\n");
             printf("  ========================================\n");
             printf("            D R I F T M A N I A          \n");
@@ -63,7 +71,6 @@ int main(void) {
             }
         } 
         else if (menu_state == 1) {
-            printf("\x1b[H");
             printf("\n\n");
             printf("  [ GAME ENGINE RUNNING ]\n\n");
             printf("  Engine started! Get ready to drift.\n");
