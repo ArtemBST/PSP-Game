@@ -1,17 +1,86 @@
 #include <pspkernel.h>
-#include <pspdebug.h>
+#include <pspdisplay.h>
+#include <pspctrl.h>
+#include <stdio.h>
 
-PSP_MODULE_INFO("PSP Hello World", 0, 1, 1);
+PSP_MODULE_INFO("Driftmania", 0, 1, 0);
+PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
 
-#define printf pspDebugScreenPrintf
+/* Выход из игры по желанию */
+int exit_callback(int arg1, int arg2, int exit) {
+    sceKernelExitGame();
+    return 0;
+}
 
-int main() {
-    pspDebugScreenInit();
-    printf("Hello, PSP World!\n");
-    printf("Project started by Artem!\n");
+int callback_thread(SceSize args, void *argp) {
+    int cbid = sceKernelCreateCallback("Exit Callback", exit_callback, NULL);
+    sceKernelRegisterExitCallback(cbid);
+    sceKernelSleepThreadCB();
+    return 0;
+}
 
-    while(1) {
-        // Главный цикл программы
+int setup_callbacks(void) {
+    int thid = sceKernelCreateThread("update_thread", callback_thread, 0x11, 0xFA0, 0, 0);
+    if (thid >= 0) sceKernelStartThread(thid, 0, NULL);
+    return thid;
+}
+
+int main(void) {
+    setup_callbacks();
+    
+    // Инициализация контроллера PSP
+    sceCtrlSetSamplingCycle(0);
+    sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
+    
+    SceCtrlData pad;
+
+    int menu_state = 0; // 0 - Главное меню, 1 - Сама игра
+    int blink_timer = 0; // Таймер для мигания текста
+
+    while (1) {
+        sceCtrlReadBufferPositive(&pad, 1);
+        
+        // Очищаем экран (в текстовом режиме PSP вывод идет через стандартный printf)
+        // Внимание: стандартный stdout в PSP выводит текст в отладочное окошко/экран Text Mode
+        
+        if (menu_state == 0) {
+            printf("\x1b[H"); // Перевод курсора в левый верхний угол
+            printf("\n\n");
+            printf("  ========================================\n");
+            printf("            D R I F T M A N I A          \n");
+            printf("            PSP Retro Arcade Racing      \n");
+            printf("  ========================================\n\n\n");
+            
+            // Эффект мигания надписи "Press START" каждые ~30 кадров
+            if ((blink_timer / 30) % 2 == 0) {
+                printf("       > PRESS START TO CONTINUE <       \n");
+            } else {
+                printf("                                         \n");
+            }
+            
+            printf("\n\n\n     Project by Artem (c) 2026\n");
+
+            // Проверяем нажатие кнопки START
+            if (pad.Buttons & PSP_CTRL_START) {
+                menu_state = 1; // Переходим в режим игры
+            }
+        } 
+        else if (menu_state == 1) {
+            printf("\x1b[H");
+            printf("\n\n");
+            printf("  [ GAME ENGINE RUNNING ]\n\n");
+            printf("  Engine started! Get ready to drift.\n");
+            printf("  Press SELECT to return to menu.\n");
+            
+            if (pad.Buttons & PSP_CTRL_SELECT) {
+                menu_state = 0; // Возврат в меню
+            }
+        }
+
+        blink_timer++;
+        
+        // Ожидание вертикальной развертки (60 кадров в секунду)
+        sceDisplayWaitVblankStart();
     }
 
     return 0;
