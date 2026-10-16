@@ -53,7 +53,7 @@ ConsoleLevel levels[16] = {
     {14, "Nintendo DS", "Calibrate touchscreen", 30, 10},
     {15, "Nintendo Wii", "Fix Sensor Bar port", 25, 12},
     {16, "PlayStation 4", "Deep dust cleaning", 20, 14},
-    {17, "Xbox One". "Repair the disk drive", 29, 10}
+    {17, "Xbox One", "Repair the disk drive", 29, 10}
 };
 
 int main(void) {
