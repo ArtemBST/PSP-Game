@@ -2,24 +2,12 @@
 #include <pspdebug.h>
 #include <pspctrl.h>
 #include <stdlib.h>
-#include <time.h>
+#include <string.h>
 
-PSP_MODULE_INFO("PuzzleGalaxyGame", 0, 1, 0);
+PSP_MODULE_INFO("RetroRepairShop", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
 
-/* Глобальные переменные (для RetroAchievements) */
-int g_game_state = 1;     // 1 - игра идет, 2 - победа
-int g_cursor_x = 0;       // Позиция курсора X (0-2)
-int g_cursor_y = 0;       // Позиция курсора Y (0-2)
-int g_selected_x = -1;    // Выбранный тайл X (-1 если не выбран)
-int g_selected_y = -1;    // Выбранный тайл Y
-int g_moves = 0;          // Счётчик ходов (для ачивок)
-int g_is_won = 0;         // 0 - в процессе, 1 - собрано
-
-#define SIZE 3
-int g_board[SIZE][SIZE];
-
-/* Системные функции выхода из игры */
+/* Системные колбэки выхода */
 int exit_callback(int arg1, int arg2, void *common) {
     sceKernelExitGame();
     return 0;
@@ -38,84 +26,86 @@ int setup_callbacks(void) {
     return thid;
 }
 
-// Функция перемешивания поля (гарантирует, что пазл собираемый)
-void shuffle_board(void) {
-    int expected = 1;
-    for (int y = 0; y < SIZE; y++) {
-        for (int x = 0; x < SIZE; x++) {
-            if (x == SIZE - 1 && y == SIZE - 1) {
-                g_board[y][x] = 0;
-            } else {
-                g_board[y][x] = expected++;
-            }
-        }
-    }
+/* Структура консоли для ремонта */
+typedef struct {
+    int id;
+    char name[32];
+    char issue[64];
+    int repair_x; // Координаты поломки на столе
+    int repair_y;
+} ConsoleLevel;
 
-    // Делаем серию случайных обменов тайлов
-    for (int i = 0; i < 15; i++) {
-        int x1 = rand() % SIZE;
-        int y1 = rand() % SIZE;
-        int x2 = rand() % SIZE;
-        int y2 = rand() % SIZE;
-
-        int temp = g_board[y1][x1];
-        g_board[y1][x1] = g_board[y2][x2];
-        g_board[y2][x2] = temp;
-    }
-}
-
-// Проверка: собран ли пазл правильно
-int check_win(void) {
-    int expected = 1;
-    for (int y = 0; y < SIZE; y++) {
-        for (int x = 0; x < SIZE; x++) {
-            if (x == SIZE - 1 && y == SIZE - 1) {
-                if (g_board[y][x] != 0) return 0;
-            } else {
-                if (g_board[y][x] != expected++) return 0;
-            }
-        }
-    }
-    return 1;
-}
+// Список всех 16 консолей
+ConsoleLevel levels[16] = {
+    {1, "Game Boy Classic", "Clean battery contacts", 30, 10},
+    {2, "Dendy / Famicom", "Blow cartridge slot", 25, 12},
+    {3, "SEGA Mega Drive", "Fix D-Pad buttons", 20, 15},
+    {4, "PlayStation 1", "Adjust CD laser lens", 28, 11},
+    {5, "Game Boy Color", "Replace screen lens", 32, 9},
+    {6, "SEGA Dreamcast", "Replace RTC battery", 26, 13},
+    {7, "PSone", "Fix power jack", 29, 10},
+    {8, "PlayStation 2", "Lubricate DVD tray", 24, 14},
+    {9, "Xbox Original", "Replace thermal paste", 22, 12},
+    {10, "Game Boy Advance SP", "Fix hinge & battery", 31, 8},
+    {11, "PlayStation Portable", "Replace analog stick", 27, 11},
+    {12, "PlayStation 3", "Clean cooling fan", 21, 15},
+    {13, "Xbox 360", "Replace DVD drive belt", 23, 13},
+    {14, "Nintendo DS", "Calibrate touchscreen", 30, 10},
+    {15, "Nintendo Wii", "Fix Sensor Bar port", 25, 12},
+    {16, "PlayStation 4", "Deep dust cleaning", 20, 14}
+};
 
 int main(void) {
     pspDebugScreenInit();
     setup_callbacks();
 
-    // Инициализация генератора случайных чисел
-    srand(time(NULL));
-    shuffle_board(); // Перемешиваем при запуске!
-
     SceCtrlData pad;
     sceCtrlSetSamplingCycle(0);
     sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
 
+    int current_level = 0;
+    int cursor_x = 20;
+    int cursor_y = 10;
+    int fix_progress = 0;
     int last_buttons = 0;
 
     while (1) {
         pspDebugScreenSetXY(0, 0);
-        pspDebugScreenPrintf("=== PUZZLE GALAXY GAME ===\n");
-        pspDebugScreenPrintf("Moves: %d  Status: %s\n\n", g_moves, g_is_won ? "VICTORY!" : "Playing");
+        pspDebugScreenPrintf("==================================================\n");
+        pspDebugScreenPrintf("             RETRO REPAIR SHOP 2D                 \n");
+        pspDebugScreenPrintf("==================================================\n\n");
 
-        // Отрисовка поля
-        for (int y = 0; y < SIZE; y++) {
+        ConsoleLevel *lvl = &levels[current_level];
+
+        pspDebugScreenPrintf(" LEVEL %d/16: %s\n", lvl->id, lvl->name);
+        pspDebugScreenPrintf(" Issue: %s\n", lvl->issue);
+        pspDebugScreenPrintf(" Fix Progress: [");
+        
+        int bars = fix_progress / 10;
+        for (int i = 0; i < 10; i++) {
+            if (i < bars) pspDebugScreenPrintf("#");
+            else pspDebugScreenPrintf(".");
+        }
+        pspDebugScreenPrintf("] %d%%\n\n", fix_progress);
+
+        // Простой рабочий стол 2D
+        for (int y = 5; y < 18; y++) {
             pspDebugScreenPrintf("  ");
-            for (int x = 0; x < SIZE; x++) {
-                if (x == g_cursor_x && y == g_cursor_y) {
-                    pspDebugScreenPrintf("[%d] ", g_board[y][x]); // Курсор
-                } else if (x == g_selected_x && y == g_selected_y) {
-                    pspDebugScreenPrintf("*%d* ", g_board[y][x]); // Выбран для обмена
+            for (int x = 5; x < 55; x++) {
+                if (x == cursor_x && y == cursor_y) {
+                    pspDebugScreenPrintf("+"); // Курсор мастера (отвертка)
+                } else if (x == lvl->repair_x && y == lvl->repair_y) {
+                    pspDebugScreenPrintf("X"); // Точка поломки
+                } else if (x >= 15 && x <= 45 && y >= 8 && y <= 16) {
+                    pspDebugScreenPrintf("="); // Корпус консоли
                 } else {
-                    pspDebugScreenPrintf(" %d  ", g_board[y][x]);
+                    pspDebugScreenPrintf(" ");
                 }
             }
             pspDebugScreenPrintf("\n");
         }
 
-        pspDebugScreenPrintf("\nControls:\n");
-        pspDebugScreenPrintf("D-Pad: Move | Cross (X): Select/Swap\n");
-        pspDebugScreenPrintf("START: Exit\n");
+        pspDebugScreenPrintf("\n Controls: D-Pad = Move Tool | X = Repair | START = Exit\n");
 
         sceCtrlReadBufferPositive(&pad, 1);
         int pressed = pad.Buttons & ~last_buttons;
@@ -123,37 +113,33 @@ int main(void) {
 
         if (pad.Buttons & PSP_CTRL_START) break;
 
-        if (!g_is_won) {
-            // Управление курсором
-            if ((pressed & PSP_CTRL_UP) && g_cursor_y > 0) g_cursor_y--;
-            if ((pressed & PSP_CTRL_DOWN) && g_cursor_y < SIZE - 1) g_cursor_y++;
-            if ((pressed & PSP_CTRL_LEFT) && g_cursor_x > 0) g_cursor_x--;
-            if ((pressed & PSP_CTRL_RIGHT) && g_cursor_x < SIZE - 1) g_cursor_x++;
+        // Движение курсора
+        if ((pad.Buttons & PSP_CTRL_UP) && cursor_y > 5) cursor_y--;
+        if ((pad.Buttons & PSP_CTRL_DOWN) && cursor_y < 17) cursor_y++;
+        if ((pad.Buttons & PSP_CTRL_LEFT) && cursor_x > 5) cursor_x--;
+        if ((pad.Buttons & PSP_CTRL_RIGHT) && cursor_x < 54) cursor_x++;
 
-            // Выбор плитки и обмен
-            if (pressed & PSP_CTRL_CROSS) {
-                if (g_selected_x == -1) {
-                    g_selected_x = g_cursor_x;
-                    g_selected_y = g_cursor_y;
-                } else {
-                    // Меняем местами
-                    int temp = g_board[g_selected_y][g_selected_x];
-                    g_board[g_selected_y][g_selected_x] = g_board[g_cursor_y][g_cursor_x];
-                    g_board[g_cursor_y][g_cursor_x] = temp;
-                    
-                    g_moves++;
-                    g_selected_x = -1;
-                    g_selected_y = -1;
-
-                    if (check_win()) {
-                        g_is_won = 1;
-                        g_game_state = 2; // Победа для RA
+        // Механика чистки / ремонта
+        if (pad.Buttons & PSP_CTRL_CROSS) {
+            // Если курсор наведен на точку поломки
+            if (abs(cursor_x - lvl->repair_x) <= 2 && abs(cursor_y - lvl->repair_y) <= 1) {
+                fix_progress += 2; // Ремонтируем!
+                if (fix_progress >= 100) {
+                    fix_progress = 0;
+                    current_level++;
+                    if (current_level >= 16) {
+                        // Победа в игре!
+                        pspDebugScreenClear();
+                        pspDebugScreenPrintf("\n\n  CONGRATULATIONS! YOU FIXED ALL 16 CONSOLES!\n");
+                        pspDebugScreenPrintf("  YOU ARE THE ULTIMATE RETRO MASTER!\n");
+                        sceKernelDelayThread(5000000);
+                        break;
                     }
                 }
             }
         }
 
-        sceKernelDelayThread(100000); // 100мс пауза
+        sceKernelDelayThread(30000); // Гладкие 30 FPS
     }
 
     sceKernelExitGame();
