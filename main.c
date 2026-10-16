@@ -3,10 +3,10 @@
 #include <pspctrl.h>
 #include <stdlib.h>
 
-PSP_MODULE_INFO("PuzzleSwapPSP", 0, 1, 0);
+PSP_MODULE_INFO("PuzzleGalaxyGame", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
 
-/* Глобальные переменные (фиксированные для RetroAchievements) */
+/* Глобальные переменные (для RetroAchievements) */
 int g_game_state = 1;     // 1 - игра идет, 2 - победа
 int g_cursor_x = 0;       // Позиция курсора X (0-2)
 int g_cursor_y = 0;       // Позиция курсора Y (0-2)
@@ -22,12 +22,13 @@ int g_board[SIZE][SIZE] = {
     {8, 7, 0}
 };
 
-int exit_callback(int arg1, int arg2, int common) {
+/* Системные функции выхода из игры */
+int exit_callback(int arg1, int arg2, void *common) {
     sceKernelExitGame();
     return 0;
 }
 
-int callback_thread(SceSize args, char *argp) {
+int callback_thread(SceSize args, void *argp) {
     int cbid = sceKernelCreateCallback("Exit Callback", exit_callback, NULL);
     sceKernelRegisterExitCallback(cbid);
     sceKernelSleepThreadCB();
@@ -35,13 +36,13 @@ int callback_thread(SceSize args, char *argp) {
 }
 
 int setup_callbacks(void) {
-    int thid = sceKernelCreateThread("update_thread", callback_thread, 0x11, 0xFA0, 0, 0);
+    int thid = sceKernelCreateThread("update_thread", callback_thread, 0x11, 0xFA0, 0, NULL);
     if (thid >= 0) sceKernelStartThread(thid, 0, NULL);
     return thid;
 }
 
 // Проверка: собран ли пазл правильно
-int check_win() {
+int check_win(void) {
     int expected = 1;
     for (int y = 0; y < SIZE; y++) {
         for (int x = 0; x < SIZE; x++) {
@@ -67,7 +68,7 @@ int main(void) {
 
     while (1) {
         pspDebugScreenSetXY(0, 0);
-        pspDebugScreenPrintf("=== PUZZLE SWAP PSP ===\n");
+        pspDebugScreenPrintf("=== PUZZLE GALAXY GAME ===\n");
         pspDebugScreenPrintf("Moves: %d  Status: %s\n\n", g_moves, g_is_won ? "VICTORY!" : "Playing");
 
         // Отрисовка поля
@@ -86,7 +87,7 @@ int main(void) {
         }
 
         pspDebugScreenPrintf("\nControls:\n");
-        pspDebugScreenPrintf("D-Pad: Move | X: Select/Swap\n");
+        pspDebugScreenPrintf("D-Pad: Move | Cross (X): Select/Swap\n");
         pspDebugScreenPrintf("START: Exit\n");
 
         sceCtrlReadBufferPositive(&pad, 1);
@@ -97,10 +98,10 @@ int main(void) {
 
         if (!g_is_won) {
             // Управление курсором
-            if (pressed & PSP_CTRL_UP && g_cursor_y > 0) g_cursor_y--;
-            if (pressed & PSP_CTRL_DOWN && g_cursor_y < SIZE - 1) g_cursor_y++;
-            if (pressed & PSP_CTRL_LEFT && g_cursor_x > 0) g_cursor_x--;
-            if (pressed & PSP_CTRL_RIGHT && g_cursor_x < SIZE - 1) g_cursor_x++;
+            if ((pressed & PSP_CTRL_UP) && g_cursor_y > 0) g_cursor_y--;
+            if ((pressed & PSP_CTRL_DOWN) && g_cursor_y < SIZE - 1) g_cursor_y++;
+            if ((pressed & PSP_CTRL_LEFT) && g_cursor_x > 0) g_cursor_x--;
+            if ((pressed & PSP_CTRL_RIGHT) && g_cursor_x < SIZE - 1) g_cursor_x++;
 
             // Выбор плитки и обмен
             if (pressed & PSP_CTRL_CROSS) {
@@ -119,7 +120,7 @@ int main(void) {
 
                     if (check_win()) {
                         g_is_won = 1;
-                        g_game_state = 2; // Фиксация победы для RA
+                        g_game_state = 2; // Победа для RA
                     }
                 }
             }
@@ -128,5 +129,6 @@ int main(void) {
         sceKernelDelayThread(100000); // 100мс пауза
     }
 
+    sceKernelExitGame();
     return 0;
 }
