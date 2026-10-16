@@ -52,7 +52,8 @@ ConsoleLevel levels[16] = {
     {13, "Xbox 360", "Replace DVD drive belt", 23, 13},
     {14, "Nintendo DS", "Calibrate touchscreen", 30, 10},
     {15, "Nintendo Wii", "Fix Sensor Bar port", 25, 12},
-    {16, "PlayStation 4", "Deep dust cleaning", 20, 14}
+    {16, "PlayStation 4", "Deep dust cleaning", 20, 14},
+    {17, "Xbox One". "Repair the disk drive", 29, 10}
 };
 
 int main(void) {
