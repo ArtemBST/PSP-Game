@@ -36,7 +36,7 @@ typedef struct {
 } ConsoleLevel;
 
 // Список всех 16 консолей
-ConsoleLevel levels[16] = {
+ConsoleLevel levels[17] = {
     {1, "Game Boy Classic", "Clean battery contacts", 30, 10},
     {2, "Dendy / Famicom", "Blow cartridge slot", 25, 12},
     {3, "SEGA Mega Drive", "Fix D-Pad buttons", 20, 15},
@@ -78,7 +78,7 @@ int main(void) {
 
         ConsoleLevel *lvl = &levels[current_level];
 
-        pspDebugScreenPrintf(" LEVEL %d/16: %s\n", lvl->id, lvl->name);
+        pspDebugScreenPrintf(" LEVEL %d/17: %s\n", lvl->id, lvl->name);
         pspDebugScreenPrintf(" Issue: %s\n", lvl->issue);
         pspDebugScreenPrintf(" Fix Progress: [");
         
