@@ -1,21 +1,33 @@
 #include <pspkernel.h>
-#include <pspdisplay.h>
-#include <pspctrl.h>
 #include <pspdebug.h>
-#include <stdio.h>
+#include <pspctrl.h>
+#include <stdlib.h>
 
-/* Перенаправляем стандартный printf на экран PSP */
-#define printf pspDebugScreenPrintf
-
-PSP_MODULE_INFO("Driftmania", 0, 1, 0);
+PSP_MODULE_INFO("PuzzleSwapPSP", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
 
-int exit_callback(int arg1, int arg2, void *arg) {
+/* Глобальные переменные (фиксированные для RetroAchievements) */
+int g_game_state = 1;     // 1 - игра идет, 2 - победа
+int g_cursor_x = 0;       // Позиция курсора X (0-2)
+int g_cursor_y = 0;       // Позиция курсора Y (0-2)
+int g_selected_x = -1;    // Выбранный тайл X (-1 если не выбран)
+int g_selected_y = -1;    // Выбранный тайл Y
+int g_moves = 0;          // Счётчик ходов (для ачивок)
+int g_is_won = 0;         // 0 - в процессе, 1 - собрано
+
+#define SIZE 3
+int g_board[SIZE][SIZE] = {
+    {3, 1, 2},
+    {6, 4, 5},
+    {8, 7, 0}
+};
+
+int exit_callback(int arg1, int arg2, int common) {
     sceKernelExitGame();
     return 0;
 }
 
-int callback_thread(SceSize args, void *argp) {
+int callback_thread(SceSize args, char *argp) {
     int cbid = sceKernelCreateCallback("Exit Callback", exit_callback, NULL);
     sceKernelRegisterExitCallback(cbid);
     sceKernelSleepThreadCB();
@@ -28,63 +40,92 @@ int setup_callbacks(void) {
     return thid;
 }
 
+// Проверка: собран ли пазл правильно
+int check_win() {
+    int expected = 1;
+    for (int y = 0; y < SIZE; y++) {
+        for (int x = 0; x < SIZE; x++) {
+            if (x == SIZE - 1 && y == SIZE - 1) {
+                if (g_board[y][x] != 0) return 0;
+            } else {
+                if (g_board[y][x] != expected++) return 0;
+            }
+        }
+    }
+    return 1;
+}
+
 int main(void) {
-    setup_callbacks();
-    
-    // Инициализируем экран отладки для вывода текста
     pspDebugScreenInit();
-    
-    // Инициализация контроллера PSP
+    setup_callbacks();
+
+    SceCtrlData pad;
     sceCtrlSetSamplingCycle(0);
     sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
-    
-    SceCtrlData pad;
 
-    int menu_state = 0; // 0 - Главное меню, 1 - Сама игра
-    int blink_timer = 0; // Таймер для мигания текста
+    int last_buttons = 0;
 
     while (1) {
-        sceCtrlReadBufferPositive(&pad, 1);
-        
-        // Переводим курсор в левый верхний угол перед каждой перерисовкой экрана
         pspDebugScreenSetXY(0, 0);
-        
-        if (menu_state == 0) {
-            printf("\n\n");
-            printf("  ========================================\n");
-            printf("            D R I F T M A N I A          \n");
-            printf("            PSP Retro Arcade Racing      \n");
-            printf("  ========================================\n\n\n");
-            
-            // Эффект мигания надписи "Press START" каждые ~30 кадров
-            if ((blink_timer / 30) % 2 == 0) {
-                printf("       > PRESS START TO CONTINUE <       \n");
-            } else {
-                printf("                                         \n");
-            }
-            
-            printf("\n\n\n     Project by Artem (c) 2026\n");
+        pspDebugScreenPrintf("=== PUZZLE SWAP PSP ===\n");
+        pspDebugScreenPrintf("Moves: %d  Status: %s\n\n", g_moves, g_is_won ? "VICTORY!" : "Playing");
 
-            // Проверяем нажатие кнопки START
-            if (pad.Buttons & PSP_CTRL_START) {
-                menu_state = 1; // Переходим в режим игры
+        // Отрисовка поля
+        for (int y = 0; y < SIZE; y++) {
+            pspDebugScreenPrintf("  ");
+            for (int x = 0; x < SIZE; x++) {
+                if (x == g_cursor_x && y == g_cursor_y) {
+                    pspDebugScreenPrintf("[%d] ", g_board[y][x]); // Курсор
+                } else if (x == g_selected_x && y == g_selected_y) {
+                    pspDebugScreenPrintf("*%d* ", g_board[y][x]); // Выбран для обмена
+                } else {
+                    pspDebugScreenPrintf(" %d  ", g_board[y][x]);
+                }
             }
-        } 
-        else if (menu_state == 1) {
-            printf("\n\n");
-            printf("  [ GAME ENGINE RUNNING ]\n\n");
-            printf("  Engine started! Get ready to drift.\n");
-            printf("  Press SELECT to return to menu.\n");
-            
-            if (pad.Buttons & PSP_CTRL_SELECT) {
-                menu_state = 0; // Возврат в меню
+            pspDebugScreenPrintf("\n");
+        }
+
+        pspDebugScreenPrintf("\nControls:\n");
+        pspDebugScreenPrintf("D-Pad: Move | X: Select/Swap\n");
+        pspDebugScreenPrintf("START: Exit\n");
+
+        sceCtrlReadBufferPositive(&pad, 1);
+        int pressed = pad.Buttons & ~last_buttons;
+        last_buttons = pad.Buttons;
+
+        if (pad.Buttons & PSP_CTRL_START) break;
+
+        if (!g_is_won) {
+            // Управление курсором
+            if (pressed & PSP_CTRL_UP && g_cursor_y > 0) g_cursor_y--;
+            if (pressed & PSP_CTRL_DOWN && g_cursor_y < SIZE - 1) g_cursor_y++;
+            if (pressed & PSP_CTRL_LEFT && g_cursor_x > 0) g_cursor_x--;
+            if (pressed & PSP_CTRL_RIGHT && g_cursor_x < SIZE - 1) g_cursor_x++;
+
+            // Выбор плитки и обмен
+            if (pressed & PSP_CTRL_CROSS) {
+                if (g_selected_x == -1) {
+                    g_selected_x = g_cursor_x;
+                    g_selected_y = g_cursor_y;
+                } else {
+                    // Меняем местами
+                    int temp = g_board[g_selected_y][g_selected_x];
+                    g_board[g_selected_y][g_selected_x] = g_board[g_cursor_y][g_cursor_x];
+                    g_board[g_cursor_y][g_cursor_x] = temp;
+                    
+                    g_moves++;
+                    g_selected_x = -1;
+                    g_selected_y = -1;
+
+                    if (check_win()) {
+                        g_is_won = 1;
+                        g_game_state = 2; // Фиксация победы для RA
+                    }
+                }
             }
         }
 
-        blink_timer++;
-        
-        // Ожидание вертикальной развертки (60 кадров в секунду)
-        sceDisplayWaitVblankStart();
+        sceKernelDelayThread(100000); // 100мс пауза
     }
 
     return 0;
