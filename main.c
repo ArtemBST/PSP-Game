@@ -2,6 +2,7 @@
 #include <pspdebug.h>
 #include <pspctrl.h>
 #include <stdlib.h>
+#include <time.h>
 
 PSP_MODULE_INFO("PuzzleGalaxyGame", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
@@ -16,11 +17,7 @@ int g_moves = 0;          // Счётчик ходов (для ачивок)
 int g_is_won = 0;         // 0 - в процессе, 1 - собрано
 
 #define SIZE 3
-int g_board[SIZE][SIZE] = {
-    {3, 1, 2},
-    {6, 4, 5},
-    {8, 7, 0}
-};
+int g_board[SIZE][SIZE];
 
 /* Системные функции выхода из игры */
 int exit_callback(int arg1, int arg2, void *common) {
@@ -41,6 +38,32 @@ int setup_callbacks(void) {
     return thid;
 }
 
+// Функция перемешивания поля (гарантирует, что пазл собираемый)
+void shuffle_board(void) {
+    int expected = 1;
+    for (int y = 0; y < SIZE; y++) {
+        for (int x = 0; x < SIZE; x++) {
+            if (x == SIZE - 1 && y == SIZE - 1) {
+                g_board[y][x] = 0;
+            } else {
+                g_board[y][x] = expected++;
+            }
+        }
+    }
+
+    // Делаем серию случайных обменов тайлов
+    for (int i = 0; i < 15; i++) {
+        int x1 = rand() % SIZE;
+        int y1 = rand() % SIZE;
+        int x2 = rand() % SIZE;
+        int y2 = rand() % SIZE;
+
+        int temp = g_board[y1][x1];
+        g_board[y1][x1] = g_board[y2][x2];
+        g_board[y2][x2] = temp;
+    }
+}
+
 // Проверка: собран ли пазл правильно
 int check_win(void) {
     int expected = 1;
@@ -59,6 +82,10 @@ int check_win(void) {
 int main(void) {
     pspDebugScreenInit();
     setup_callbacks();
+
+    // Инициализация генератора случайных чисел
+    srand(time(NULL));
+    shuffle_board(); // Перемешиваем при запуске!
 
     SceCtrlData pad;
     sceCtrlSetSamplingCycle(0);
