@@ -1,8 +1,8 @@
-TARGET = driftmania
+TARGET = RetroRepairShop
 OBJS = main.o
 
 # Название игры и иконка
-PSP_EBOOT_TITLE = Puzzle Galaxy Game
+PSP_EBOOT_TITLE = Retro Repair Shop 2D
 PSP_EBOOT_ICON = ICON0.PNG
 
 # ВАЖНО: Приказываем сборщику упаковать файлы в EBOOT.PBP
