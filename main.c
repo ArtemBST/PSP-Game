@@ -105,7 +105,7 @@ int main(void) {
 
         ConsoleLevel *lvl = &levels[current_level];
 
-        pspDebugScreenPrintf(" WALLET: $%d | LEVEL %d/17: %s\n", money, lvl->id, lvl->name);
+        pspDebugScreenPrintf(" WALLET: $%d | LEVEL %d/18: %s\n", money, lvl->id, lvl->name);
         pspDebugScreenPrintf(" Issue: %s\n", lvl->issue);
         
         pspDebugScreenPrintf(" Active Tool: %s ", tool_names[current_tool]);
@@ -254,7 +254,7 @@ int main(void) {
                         solder_drift_x = 0.0f;
                         current_level++;
 
-                        if (current_level >= 17) {
+                        if (current_level >= 18) {
                             pspDebugScreenClear();
                             pspDebugScreenPrintf("\n\n  CONGRATULATIONS! YOU FIXED ALL CONSOLES!\n");
                             pspDebugScreenPrintf("  TOTAL EARNED: $%d\n", money);
