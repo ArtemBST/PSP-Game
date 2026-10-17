@@ -39,7 +39,7 @@ typedef struct {
     int is_complex; // 1 - активирует QTE-режим для некстгена (PS3, Xbox360, PS4, XOne)
 } ConsoleLevel;
 
-ConsoleLevel levels[17] = {
+ConsoleLevel levels[18] = {
     {1, "Game Boy Classic", "Clean battery contacts", 30, 10, 2, 15, 0},
     {2, "Dendy / Famicom", "Blow cartridge slot", 25, 12, 2, 10, 0},
     {3, "SEGA Mega Drive", "Fix D-Pad buttons", 20, 15, 0, 25, 0},
@@ -56,7 +56,8 @@ ConsoleLevel levels[17] = {
     {14, "Nintendo DS", "Calibrate touchscreen", 30, 10, 0, 40, 1},
     {15, "Nintendo Wii", "Fix Sensor Bar port", 25, 12, 1, 65, 1},
     {16, "PlayStation 4", "Deep dust cleaning", 20, 14, 2, 90, 1},
-    {17, "Xbox One", "Repair the disk drive", 29, 10, 1, 120, 1}
+    {17, "Xbox One", "Repair the disk drive", 29, 10, 1, 120, 1},
+    {18, "PlayStation Vita", "Repair the graphics chip", 31, 20, 2, 100, 0}
 };
 
 const char *tool_names[3] = {
