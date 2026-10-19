@@ -40,7 +40,7 @@ typedef struct {
 } ConsoleLevel;
 
 ConsoleLevel levels[18] = {
-    {1, "Game Boy Classic", "Clean battery contacts", 30, 10, 2, 15, 0},
+    {1, "Game Boy NINTENDO", "Clean battery contacts", 30, 10, 2, 15, 0},
     {2, "Dendy / Famicom", "Blow cartridge slot", 25, 12, 2, 10, 0},
     {3, "SEGA Mega Drive", "Fix D-Pad buttons", 20, 15, 0, 25, 0},
     {4, "PlayStation 1", "Adjust CD laser lens", 28, 11, 0, 40, 0},
