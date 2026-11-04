@@ -7,7 +7,7 @@ PSP_EBOOT_ICON = ICON0.PNG
 
 # ВАЖНО: Добавляем библиотеку oslib и ее зависимости
 # -losl (сама библиотека), -lpng -lz (для картинок), -lm (математика)
-LIBS = -losl -lpng -lz -lm -lpspgum -lpspgu -lpsprtc -lpspaudiolib -lpspaudio
+LIBS = -losl -lpng -lz -lm -lpspgum -lpspgu -lpsprtc -lpspaudiolib -lpspaudio -lpsppower -lpsphprm
 
 CFLAGS = -O2 -G0 -Wall
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
