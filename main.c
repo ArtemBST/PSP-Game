@@ -21,7 +21,8 @@ typedef struct {
     int is_complex; 
 } ConsoleLevel;
 
-ConsoleLevel levels[18] = {
+// ТЕПЕРЬ ИХ 24! Добавили новые консоли
+ConsoleLevel levels[24] = {
     {1, "Game Boy NINTENDO", "Clean battery contacts", 30, 10, 2, 15, 0},
     {2, "Dendy / Famicom", "Blow cartridge slot", 25, 12, 2, 10, 0},
     {3, "SEGA Mega Drive", "Fix D-Pad buttons", 20, 15, 0, 25, 0},
@@ -39,7 +40,13 @@ ConsoleLevel levels[18] = {
     {15, "Nintendo Wii", "Fix Sensor Bar port", 25, 12, 1, 65, 1},
     {16, "PlayStation 4", "Deep dust cleaning", 20, 14, 2, 90, 1},
     {17, "Xbox One", "Repair the disk drive", 29, 10, 1, 120, 1},
-    {18, "PlayStation Vita", "Repair the graphics chip", 31, 20, 2, 100, 0}
+    {18, "PlayStation Vita", "Repair the graphics chip", 31, 20, 2, 100, 0},
+    {19, "Nintendo 3DS", "Fix 3D screen flicker", 25, 12, 0, 110, 1},
+    {20, "New Nintendo 3DS", "Replace C-stick", 28, 10, 1, 130, 1},
+    {21, "Nintendo Switch", "Fix Joy-Con drift", 22, 14, 1, 150, 1},
+    {22, "PlayStation 5", "Clean liquid metal", 26, 15, 2, 200, 1},
+    {23, "Xbox Series S", "Replace SSD", 24, 11, 0, 180, 1},
+    {24, "Xbox Series X", "Fix disc drive", 30, 13, 1, 220, 1}
 };
 
 const char *tool_names[3] = { "[SCREWDRIVER]", "[SOLDERING IRON]", "[ALCOHOL BRUSH]" };
@@ -63,7 +70,7 @@ void load_game(int *current_level, int *money) {
         fread(money, sizeof(int), 1, f);
         fclose(f);
     } else {
-        *current_level = 0; // Если сейва нет, начинаем с 0
+        *current_level = 0; // Начинаем с 0, если сейва нет
         *money = 0;
     }
 }
@@ -101,7 +108,6 @@ int main(void) {
     int last_buttons = 0;
     int current_tool = 0; 
     int money = 0;        
-    int is_sparking = 0;  
     float solder_drift_x = 0.0f;
     int qte_active = 0;
     int qte_target_idx = 0;
@@ -111,20 +117,21 @@ int main(void) {
     load_game(&current_level, &money);
 
     while (1) {
-        // Очищаем экран темно-синим цветом (стол мастера)
+        // Очищаем экран темно-синим цветом
         oslClearScreen(RGB(20, 25, 45));
 
         ConsoleLevel *lvl = &levels[current_level];
+        char buf[100];
 
         // Верхняя панель
         oslDrawFillRect(0, 0, 480, 30, RGB(40, 50, 80));
         oslDrawString(10, 8, "RETRO REPAIR SHOP 2D");
         
-        char buf[100];
         sprintf(buf, "WALLET: $%d", money);
         oslDrawString(350, 8, buf);
 
-        sprintf(buf, "LEVEL %d/18: %s", lvl->id, lvl->name);
+        // Информация об уровне
+        sprintf(buf, "LEVEL %d/24: %s", lvl->id, lvl->name);
         oslDrawString(10, 40, buf);
         oslDrawString(10, 60, lvl->issue);
 
@@ -134,30 +141,30 @@ int main(void) {
         if (current_tool == lvl->req_tool) oslDrawString(250, 80, "(CORRECT)");
         else oslDrawString(250, 80, "(WRONG TOOL!)");
 
-        // Прогресс-бар
+        // Прогресс-бар (тонкая полоска)
         oslDrawString(10, 110, "Fix Progress:");
-        oslDrawFillRect(110, 115, 200, 10, RGB(50, 50, 50)); // Задний фон
-        oslDrawFillRect(110, 115, (200 * fix_progress) / 100, 10, RGB(0, 255, 0)); // Зеленый прогресс
+        oslDrawFillRect(110, 112, 200, 12, RGB(50, 50, 50)); // Задний фон
+        oslDrawFillRect(110, 112, (200 * fix_progress) / 100, 12, RGB(0, 255, 0)); // Зеленый прогресс
         sprintf(buf, "%d%%", fix_progress);
         oslDrawString(320, 110, buf);
 
         // Рисуем рабочее поле
         for (int y = 5; y < 18; y++) {
             for (int x = 5; x < 55; x++) {
-                int draw_x = x * 8 + 10; // Перевод координат в пиксели
+                int draw_x = x * 8 + 10; 
                 int draw_y = y * 10 + 140;
 
                 if (x == cursor_x && y == cursor_y) {
-                    oslDrawString(draw_x, draw_y, "+"); // Курсор
+                    oslDrawString(draw_x, draw_y, "+"); 
                 } else if (x == lvl->repair_x && y == lvl->repair_y) {
-                    oslDrawString(draw_x, draw_y, "X"); // Точка ремонта
+                    oslDrawString(draw_x, draw_y, "X"); 
                 } else if (x >= 15 && x <= 45 && y >= 8 && y <= 16) {
-                    oslDrawString(draw_x, draw_y, "="); // Стол/плата
+                    oslDrawString(draw_x, draw_y, "="); 
                 }
             }
         }
 
-        oslDrawString(10, 260, "D-Pad: Move | L/R: Tool | X: Repair | START: Save & Exit");
+        oslDrawString(10, 255, "D-Pad: Move | L/R: Tool | X: Repair | START: Save & Exit");
 
         // Отрисовка кадра
         oslEndFrame();
@@ -206,10 +213,12 @@ int main(void) {
                             qte_timer--;
                             if (pressed & qte_buttons[qte_target_idx]) { fix_progress += 15; qte_active = 0; }
                             else if (pressed & (PSP_CTRL_TRIANGLE | PSP_CTRL_SQUARE | PSP_CTRL_CIRCLE)) { 
-                                if (fix_progress > 5) fix_progress -= 5; qte_active = 0; 
+                                if (fix_progress > 5) fix_progress -= 5; 
+                                qte_active = 0; 
                             }
                             else if (qte_timer <= 0) { 
-                                if (fix_progress > 8) fix_progress -= 8; qte_active = 0; 
+                                if (fix_progress > 8) fix_progress -= 8; 
+                                qte_active = 0; 
                             }
                         }
                     }
@@ -224,9 +233,9 @@ int main(void) {
                         current_level++;
                         save_game(current_level, money); // АВТОСОХРАНЕНИЕ
 
-                        if (current_level >= 18) {
+                        if (current_level >= 24) {
                             oslClearScreen(RGB(0, 0, 0));
-                            oslDrawString(100, 130, "CONGRATULATIONS! YOU FIXED ALL CONSOLES!");
+                            oslDrawString(80, 130, "CONGRATULATIONS! YOU FIXED ALL 24 CONSOLES!");
                             oslEndFrame(); oslSyncFrame();
                             sceKernelDelayThread(5000000);
                             break;
