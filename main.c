@@ -21,7 +21,6 @@ typedef struct {
     int is_complex; 
 } ConsoleLevel;
 
-// ТЕПЕРЬ ИХ 24! Добавили новые консоли
 ConsoleLevel levels[24] = {
     {1, "Game Boy NINTENDO", "Clean battery contacts", 30, 10, 2, 15, 0},
     {2, "Dendy / Famicom", "Blow cartridge slot", 25, 12, 2, 10, 0},
@@ -70,7 +69,7 @@ void load_game(int *current_level, int *money) {
         fread(money, sizeof(int), 1, f);
         fclose(f);
     } else {
-        *current_level = 0; // Начинаем с 0, если сейва нет
+        *current_level = 0;
         *money = 0;
     }
 }
@@ -91,7 +90,6 @@ int setup_callbacks(void) {
 
 /* --- ГЛАВНАЯ ФУНКЦИЯ --- */
 int main(void) {
-    // Инициализация графики OSLib
     oslInit(0);
     oslInitGfx(OSL_PF_8888, 1);
     oslInitConsole();
@@ -113,46 +111,42 @@ int main(void) {
     int qte_target_idx = 0;
     int qte_timer = 0;
 
-    // Загружаем сохранение при старте
     load_game(&current_level, &money);
 
     while (1) {
-        // Очищаем экран темно-синим цветом
-        oslClearScreen(RGB(20, 25, 45));
+        oslClearScreen(RGB(20, 25, 45)); // Темный фон
 
         ConsoleLevel *lvl = &levels[current_level];
         char buf[100];
 
-        // Верхняя панель
+        // 1. Верхняя панель (Y: 0-30)
         oslDrawFillRect(0, 0, 480, 30, RGB(40, 50, 80));
         oslDrawString(10, 8, "RETRO REPAIR SHOP 2D");
-        
         sprintf(buf, "WALLET: $%d", money);
         oslDrawString(350, 8, buf);
 
-        // Информация об уровне
+        // 2. Информация об уровне (Y: 40-80)
         sprintf(buf, "LEVEL %d/24: %s", lvl->id, lvl->name);
         oslDrawString(10, 40, buf);
-        oslDrawString(10, 60, lvl->issue);
+        oslDrawString(10, 55, lvl->issue);
 
         sprintf(buf, "Active Tool: %s", tool_names[current_tool]);
-        oslDrawString(10, 80, buf);
-        
-        if (current_tool == lvl->req_tool) oslDrawString(250, 80, "(CORRECT)");
-        else oslDrawString(250, 80, "(WRONG TOOL!)");
+        oslDrawString(10, 75, buf);
+        if (current_tool == lvl->req_tool) oslDrawString(250, 75, "(CORRECT)");
+        else oslDrawString(250, 75, "(WRONG TOOL!)");
 
-        // Прогресс-бар (тонкая полоска)
-        oslDrawString(10, 110, "Fix Progress:");
-        oslDrawFillRect(110, 112, 200, 12, RGB(50, 50, 50)); // Задний фон
-        oslDrawFillRect(110, 112, (200 * fix_progress) / 100, 12, RGB(0, 255, 0)); // Зеленый прогресс
+        // 3. Прогресс-бар (Y: 100-115)
+        oslDrawString(10, 100, "Fix Progress:");
+        oslDrawFillRect(110, 102, 200, 12, RGB(50, 50, 50)); // Серый фон
+        oslDrawFillRect(110, 102, (200 * fix_progress) / 100, 12, RGB(0, 255, 0)); // Зеленый прогресс
         sprintf(buf, "%d%%", fix_progress);
-        oslDrawString(320, 110, buf);
+        oslDrawString(320, 100, buf);
 
-        // Рисуем рабочее поле
+        // 4. Рабочее поле (Y: 130 - 220)
         for (int y = 5; y < 18; y++) {
             for (int x = 5; x < 55; x++) {
                 int draw_x = x * 8 + 10; 
-                int draw_y = y * 10 + 140;
+                int draw_y = y * 10 + 130; // Сдвинули ниже
 
                 if (x == cursor_x && y == cursor_y) {
                     oslDrawString(draw_x, draw_y, "+"); 
@@ -164,26 +158,24 @@ int main(void) {
             }
         }
 
-        oslDrawString(10, 255, "D-Pad: Move | L/R: Tool | X: Repair | START: Save & Exit");
+        // 5. Подсказки внизу (Y: 250)
+        oslDrawString(10, 250, "D-Pad: Move | L/R: Tool | X: Repair | START: Save & Exit");
 
-        // Отрисовка кадра
         oslEndFrame();
         oslSyncFrame();
 
-        // Чтение ввода
         sceCtrlReadBufferPositive(&pad, 1);
         int pressed = pad.Buttons & ~last_buttons;
         last_buttons = pad.Buttons;
 
         if (pad.Buttons & PSP_CTRL_START) {
-            save_game(current_level, money); // Сохраняем перед выходом
+            save_game(current_level, money);
             break;
         }
 
         if (pressed & PSP_CTRL_LTRIGGER) { current_tool--; if (current_tool < 0) current_tool = 2; }
         if (pressed & PSP_CTRL_RTRIGGER) { current_tool++; if (current_tool > 2) current_tool = 0; }
 
-        // Движение курсора
         if (!(pad.Buttons & PSP_CTRL_CROSS && current_tool == 1)) {
             if ((pad.Buttons & PSP_CTRL_UP) && cursor_y > 5) cursor_y--;
             if ((pad.Buttons & PSP_CTRL_DOWN) && cursor_y < 17) cursor_y++;
@@ -191,12 +183,11 @@ int main(void) {
             if ((pad.Buttons & PSP_CTRL_RIGHT) && cursor_x < 54) cursor_x++;
         }
 
-        // Логика ремонта
         if (pad.Buttons & PSP_CTRL_CROSS) {
             if (abs(cursor_x - lvl->repair_x) <= 2 && abs(cursor_y - lvl->repair_y) <= 1) {
                 if (current_tool == lvl->req_tool) {
                     
-                    if (current_tool == 1) { // Мини-игра Пайка
+                    if (current_tool == 1) {
                         solder_drift_x += ((rand() % 3) - 1) * 0.4f;
                         int stick_x = pad.Lx - 128;
                         if (abs(stick_x) > 20) solder_drift_x += (stick_x / 64.0f);
@@ -205,7 +196,7 @@ int main(void) {
                         if (solder_drift_x > 5.0f) solder_drift_x = 5.0f;
                         if (solder_drift_x < -5.0f) solder_drift_x = -5.0f;
                     }
-                    else if (lvl->is_complex) { // QTE
+                    else if (lvl->is_complex) {
                         if (!qte_active) {
                             if (rand() % 15 == 0) { qte_active = 1; qte_target_idx = rand() % 3; qte_timer = 30; }
                             fix_progress += 1;
@@ -224,14 +215,13 @@ int main(void) {
                     }
                     else fix_progress += 2;
 
-                    // Переход на новый уровень
                     if (fix_progress >= 100) {
                         money += lvl->reward;
                         fix_progress = 0;
                         qte_active = 0;
                         solder_drift_x = 0.0f;
                         current_level++;
-                        save_game(current_level, money); // АВТОСОХРАНЕНИЕ
+                        save_game(current_level, money);
 
                         if (current_level >= 24) {
                             oslClearScreen(RGB(0, 0, 0));
@@ -250,7 +240,7 @@ int main(void) {
             qte_active = 0;
         }
 
-        sceKernelDelayThread(33000); // 30 FPS
+        sceKernelDelayThread(33000);
     }
 
     oslEndGfx();
